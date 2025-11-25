@@ -8,6 +8,10 @@ import uvicorn
 import time
 from pathlib import Path
 import json
+import tensorflow as tf
+import cv2
+import base64
+from io import BytesIO
 
 METRICS_PATH = Path("metrics/metrics.json")
 MODEL_METRICS = {}
@@ -47,6 +51,52 @@ app.add_middleware(
 print("🔄 Cargando modelo…")
 model = load_model(MODEL_PATH)
 print("✅ Modelo cargado.")
+def generate_gradcam(image: Image.Image, model, class_idx):
+    img = image.resize(IMG_SIZE)
+    img_arr = np.array(img).astype(np.float32)
+    img_input = preprocess_input(img_arr)
+    img_input = np.expand_dims(img_input, axis=0)
+
+    effnet = model.get_layer("efficientnetb0")
+
+    cam_model = tf.keras.models.Model(
+        inputs=effnet.input,
+        outputs=[
+            effnet.get_layer("top_conv").output,
+            effnet.output
+        ]
+    )
+
+    img_tensor = tf.convert_to_tensor(img_input, dtype=tf.float32)
+
+    with tf.GradientTape() as tape:
+        conv_outputs, features = cam_model(img_tensor)
+        gap = tf.reduce_mean(features, axis=(1, 2))
+        final_dense = model.get_layer("dense")
+        weights = final_dense.weights[0]
+        bias = final_dense.weights[1]
+
+        logits = tf.matmul(gap, weights) + bias
+        loss = logits[:, class_idx]
+
+    grads = tape.gradient(loss, conv_outputs)
+    weights = tf.reduce_mean(grads, axis=(0, 1, 2))
+
+    cam = tf.reduce_sum(weights * conv_outputs[0], axis=-1).numpy()
+
+    cam = cv2.resize(cam, IMG_SIZE)
+    cam = np.maximum(cam, 0)
+    cam = cam / (cam.max() + 1e-7)
+
+    heatmap = np.uint8(255 * cam)
+    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+    heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
+
+    output = cv2.addWeighted(img_arr.astype(np.uint8), 0.5, heatmap, 0.5, 0)
+
+    return output
+
+
 
 def predict_image(image: Image.Image):
     image = image.resize(IMG_SIZE)
@@ -56,6 +106,8 @@ def predict_image(image: Image.Image):
 
     preds = model.predict(image)[0]
     class_id = np.argmax(preds)
+    print("MODEL INPUT:", model.input)
+    print("EFFNET INPUT:", model.get_layer("efficientnetb0").input)
 
     return {
         "predicted_class": CLASS_NAMES[class_id],
@@ -71,14 +123,23 @@ async def predict(file: UploadFile = File(...)):
     result = predict_image(img)
     
     inference_time = time.time() - start
-    
+    # Generar Grad-CAM
+    gradcam_np = generate_gradcam(img, model, CLASS_NAMES.index(result["predicted_class"]))
+
+    # Convertir a base64
+    gradcam_img = Image.fromarray(gradcam_np)
+    buffer = BytesIO()
+    gradcam_img.save(buffer, format="PNG")
+    gradcam_b64 = base64.b64encode(buffer.getvalue()).decode()
+
     return {
         "filename": file.filename,
         "predicted_class": result["predicted_class"],
         "probabilities": result["probabilities"],
         "details": {
             "inference_time": round(inference_time, 4),
-            **MODEL_METRICS 
+            **MODEL_METRICS,
+            "gradcam": gradcam_b64   
         }
     }
 

@@ -8,6 +8,7 @@ import MetricsRadar from "./components/MetricsRadar";
 import DetailsAccordion from "./components/DetailsAccordion";
 import HealthStatus from "./components/HealthStatus";
 import { API_URL } from "../constants/api";
+import GradcamViewer from "./components/GradcamViewer";
 type ApiResult = {
   filename: string;
   predicted_class: string;
@@ -19,6 +20,8 @@ type ApiResult = {
     recall_macro?: number;
     kappa?: number;
     auc_macro?: number;
+    gradcam?: string;
+
   };
 };
 
@@ -135,6 +138,9 @@ export default function Home() {
 
             {data && (
               <DetailsAccordion data={data} />
+            )}
+            {data?.details?.gradcam && (
+              <GradcamViewer base64={data.details.gradcam} />
             )}
           </div>
         </div>
