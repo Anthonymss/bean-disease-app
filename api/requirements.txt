@@ -2,6 +2,6 @@ fastapi
 uvicorn
 tensorflow==2.17.0
 pillow
-numpy
+numpy==1.26.4
 python-multipart
 opencv-python-headless==4.8.1.78
