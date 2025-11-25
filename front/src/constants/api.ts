@@ -1,0 +1,1 @@
+export const API_URL = "https://bean-disease-app.onrender.com";

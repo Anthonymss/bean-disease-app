@@ -5,6 +5,20 @@ from tensorflow.keras.applications.efficientnet import preprocess_input
 from PIL import Image
 import numpy as np
 import uvicorn
+import time
+from pathlib import Path
+import json
+
+METRICS_PATH = Path("metrics/metrics.json")
+MODEL_METRICS = {}
+
+if METRICS_PATH.exists():
+    print("Cargando métricas globales del modelo…")
+    with open(METRICS_PATH, "r") as f:
+        MODEL_METRICS = json.load(f)
+    print("Métricas cargadas.")
+else:
+    print("WARNING: No se encontró metrics.json, detalles avanzados deshabilitados.")
 
 MODEL_PATH = "model/best_model.keras"
 IMG_SIZE = (224, 224)
@@ -51,15 +65,25 @@ def predict_image(image: Image.Image):
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
+    start = time.time()
+    
     img = Image.open(file.file).convert("RGB")
     result = predict_image(img)
-
+    
+    inference_time = time.time() - start
+    
     return {
         "filename": file.filename,
-        "result": result
+        "predicted_class": result["predicted_class"],
+        "probabilities": result["probabilities"],
+        "details": {
+            "inference_time": round(inference_time, 4),
+            **MODEL_METRICS 
+        }
     }
-@app.get("/live")
-async def live():
-    return "{is alive}"
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
