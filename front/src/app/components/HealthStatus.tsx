@@ -23,7 +23,7 @@ export default function HealthStatus() {
 
     useEffect(() => {
         checkHealth();
-        const interval = setInterval(checkHealth, 4000);
+        const interval = setInterval(checkHealth, 60000);
         return () => clearInterval(interval);
     }, []);
 

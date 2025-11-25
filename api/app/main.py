@@ -123,10 +123,8 @@ async def predict(file: UploadFile = File(...)):
     result = predict_image(img)
     
     inference_time = time.time() - start
-    # Generar Grad-CAM
     gradcam_np = generate_gradcam(img, model, CLASS_NAMES.index(result["predicted_class"]))
 
-    # Convertir a base64
     gradcam_img = Image.fromarray(gradcam_np)
     buffer = BytesIO()
     gradcam_img.save(buffer, format="PNG")

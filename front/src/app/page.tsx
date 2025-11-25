@@ -134,14 +134,24 @@ export default function Home() {
                   Sube una imagen para ver resultados.
                 </div>
               )}
-            </motion.div>
 
-            {data && (
-              <DetailsAccordion data={data} />
-            )}
-            {data?.details?.gradcam && (
-              <GradcamViewer base64={data.details.gradcam} />
-            )}
+            </motion.div>
+            <div className="flex flex-col md:flex-row gap-6">
+              {data?.details?.gradcam && (
+                <div className="flex-1">
+                  <GradcamViewer base64={data.details.gradcam} />
+                </div>
+              )}
+
+              {data && (
+                <div className="flex-1">
+                  <DetailsAccordion data={data} />
+                </div>
+              )}
+            </div>
+
+
+
           </div>
         </div>
 

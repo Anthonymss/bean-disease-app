@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { useRef } from "react";
 
 export default function UploadCard({
     onFile,
@@ -18,35 +19,59 @@ export default function UploadCard({
     predictedClass?: string;
     topProb?: number;
 }) {
+    const inputRef = useRef<HTMLInputElement | null>(null);
+
     const handleSelect = (e: any) => {
-        const f = e.target.files?.[0];
+        const input = e.target as HTMLInputElement;
+        const f = input.files?.[0];
         if (!f) return;
+
         const url = URL.createObjectURL(f);
         onFile(f, url);
+        input.value = "";
     };
 
     return (
         <div className="rounded-2xl bg-white dark:bg-[#111821] shadow-soft p-6">
             <h2 className="text-lg font-semibold mb-4">Subir imagen</h2>
 
+            <input
+                ref={inputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleSelect}
+            />
+
             {!previewUrl ? (
-                <label className="h-52 w-full flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl cursor-pointer hover:border-green-500 transition">
+                <div
+                    className="h-52 w-full flex flex-col items-center justify-center 
+                    border-2 border-dashed border-gray-300 dark:border-gray-700 
+                    rounded-xl cursor-pointer hover:border-green-500 transition"
+                    onClick={() => inputRef.current?.click()}
+                >
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                         Arrastra o haz clic para subir
                     </p>
                     <p className="text-xs text-gray-400 mt-1">
                         JPG / PNG — recomendado 224×224+
                     </p>
-                    <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleSelect}
-                    />
-                </label>
+                </div>
             ) : (
-                <div className="relative w-full h-52 rounded-xl overflow-hidden border dark:border-gray-700">
-                    <Image src={previewUrl} alt="preview" fill className="object-cover" />
+                <div
+                    className="relative w-full h-52 rounded-xl overflow-hidden border dark:border-gray-700 
+                    cursor-pointer group"
+                    onClick={() => inputRef.current?.click()}
+                >
+                    <Image
+                        src={previewUrl}
+                        alt="preview"
+                        fill
+                        className="object-cover transition-opacity duration-150 group-hover:opacity-80 pointer-events-none"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-white text-sm opacity-0 group-hover:opacity-100 transition pointer-events-none">
+                        Reemplazar imagen
+                    </div>
                 </div>
             )}
 

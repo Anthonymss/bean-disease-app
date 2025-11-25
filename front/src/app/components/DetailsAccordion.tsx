@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import MetricItem from "./MetricItem";
 
 export default function DetailsAccordion({ data }: { data: any }) {
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState(true);
 
     const d = data.details || {};
 
