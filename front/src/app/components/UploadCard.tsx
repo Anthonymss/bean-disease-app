@@ -85,13 +85,11 @@ export default function UploadCard({
             </motion.button>
 
             {predictedClass && (
-                <div className="mt-4 p-3 rounded-xl bg-gray-50 dark:bg-[#0c1219] border dark:border-gray-800">
+                <div className="mt-4 p-2 rounded-xl bg-gray-50 dark:bg-[#0c1219] border dark:border-gray-800">
                     <div className="text-sm text-gray-500 dark:text-gray-400">
-                        Clase predicha
+                        Clase predicha: <span className="text-xl font-semibold mt-1">{predictedClass}</span>
                     </div>
-                    <div className="text-xl font-semibold mt-1">
-                        {predictedClass}
-                    </div>
+
                     {typeof topProb === "number" && (
                         <div className="text-sm text-green-700 dark:text-green-300 mt-1">
                             Confianza: {(topProb * 100).toFixed(2)}%

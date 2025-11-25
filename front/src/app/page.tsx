@@ -3,25 +3,31 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import UploadCard from "./components/UploadCard";
-import ProbabilityChart from "./components/ProbabilityChart"
+import ProbabilityChart from "./components/ProbabilityChart";
 import MetricsRadar from "./components/MetricsRadar";
 import DetailsAccordion from "./components/DetailsAccordion";
 import HealthStatus from "./components/HealthStatus";
-import { API_URL } from "../constants/api";
 import GradcamViewer from "./components/GradcamViewer";
+import { API_URL } from "../constants/api";
+
 type ApiResult = {
   filename: string;
   predicted_class: string;
   probabilities: Record<string, number>;
-  details?: {
-    inference_time?: number;
-    f1_macro?: number;
-    precision_macro?: number;
-    recall_macro?: number;
-    kappa?: number;
-    auc_macro?: number;
-    gradcam?: string;
 
+  model_metrics: {
+    accuracy: number;
+    f1_macro: number;
+    f1_weighted: number;
+    precision_macro: number;
+    recall_macro: number;
+    kappa: number;
+    auc_macro: number;
+  };
+
+  image_metrics: {
+    inference_time: number;
+    gradcam: string;
   };
 };
 
@@ -57,7 +63,7 @@ export default function Home() {
       setData(json);
     } catch (e) {
       console.error(e);
-      alert("Ocurrió un error al predecir. Revisa consola y API.");
+      alert("Ocurrió un error al predecir.");
     } finally {
       setLoading(false);
     }
@@ -65,25 +71,25 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-[#0b0f14] dark:to-[#0b0f14] text-gray-900 dark:text-gray-100">
-      {/* Header */}
       <div className="max-w-6xl mx-auto px-6 py-10">
+
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
               Bean Disease Classifier
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Clasificación CNN (EfficientNet) de ALS, Bean Rust, Healthy y Unknown.
+              Clasificación CNN (EfficientNetB0) de ALS, Bean Rust, Healthy y Unknown.
             </p>
           </div>
 
-          <div className="flex items-center">
-            <HealthStatus />
-          </div>
+          <HealthStatus />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+
           <div className="lg:col-span-1 space-y-6">
+
             <UploadCard
               onFile={(f, url) => {
                 setFile(f);
@@ -96,22 +102,26 @@ export default function Home() {
               topProb={topClass?.[1]}
             />
 
-            <AnimatePresence>
-              {data?.details && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="rounded-2xl bg-white dark:bg-[#111821] shadow-soft p-5"
-                >
-                  <h3 className="font-semibold mb-3">Resumen de métricas</h3>
-                  <MetricsRadar details={data.details} />
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {data?.model_metrics && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl bg-white dark:bg-[#111821] shadow-soft p-5"
+              >
+                <h3 className="font-semibold mb-3 text-center">Resumen de métricas del modelo</h3>
+
+                <MetricsRadar
+                  details={data.model_metrics}
+                  accuracy={data.model_metrics.accuracy}
+                />
+
+
+              </motion.div>
+            )}
           </div>
 
           <div className="lg:col-span-2 space-y-6">
+
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -121,7 +131,7 @@ export default function Home() {
                 <h2 className="text-lg font-semibold">Probabilidad por clase</h2>
 
                 {data?.predicted_class && (
-                  <span className="text-sm px-3 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200">
+                  <span className="text-sm px-3 py-1 rounded-full bg-green-100 text-green-800">
                     Predicción: {data.predicted_class}
                   </span>
                 )}
@@ -130,28 +140,25 @@ export default function Home() {
               {data?.probabilities ? (
                 <ProbabilityChart probs={data.probabilities} />
               ) : (
-                <div className="h-[280px] flex items-center justify-center text-gray-500 dark:text-gray-400">
+                <div className="h-[280px] flex items-center justify-center text-gray-500">
                   Sube una imagen para ver resultados.
                 </div>
               )}
-
             </motion.div>
             <div className="flex flex-col md:flex-row gap-6">
-              {data?.details?.gradcam && (
+
+              {data?.image_metrics?.gradcam && (
                 <div className="flex-1">
-                  <GradcamViewer base64={data.details.gradcam} />
+                  <GradcamViewer base64={data.image_metrics.gradcam} />
                 </div>
               )}
 
-              {data && (
+              {data?.image_metrics && (
                 <div className="flex-1">
-                  <DetailsAccordion data={data} />
+                  <DetailsAccordion data={data.image_metrics} />
                 </div>
               )}
             </div>
-
-
-
           </div>
         </div>
 

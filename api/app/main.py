@@ -106,8 +106,6 @@ def predict_image(image: Image.Image):
 
     preds = model.predict(image)[0]
     class_id = np.argmax(preds)
-    print("MODEL INPUT:", model.input)
-    print("EFFNET INPUT:", model.get_layer("efficientnetb0").input)
 
     return {
         "predicted_class": CLASS_NAMES[class_id],
@@ -129,17 +127,20 @@ async def predict(file: UploadFile = File(...)):
     buffer = BytesIO()
     gradcam_img.save(buffer, format="PNG")
     gradcam_b64 = base64.b64encode(buffer.getvalue()).decode()
+    response= {
+    "filename": file.filename,
+    "predicted_class": result["predicted_class"],
+    "probabilities": result["probabilities"],
 
-    return {
-        "filename": file.filename,
-        "predicted_class": result["predicted_class"],
-        "probabilities": result["probabilities"],
-        "details": {
-            "inference_time": round(inference_time, 4),
-            **MODEL_METRICS,
-            "gradcam": gradcam_b64   
-        }
+    "model_metrics": MODEL_METRICS,
+
+    "image_metrics": {
+        "inference_time": round(inference_time, 4),
+        "gradcam": gradcam_b64
     }
+    }
+    return response
+
 
 @app.get("/health")
 async def health():
