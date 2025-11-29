@@ -45,7 +45,7 @@ else:
 app = FastAPI(title="API Clasificación Frijol", version="1.0")
 
 app.add_middleware(
-    CORS as CORSMiddleware,
+    CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
@@ -59,11 +59,9 @@ app.add_middleware(
 @app.on_event("startup")
 async def load_the_model():
     global MODEL
-
     print("🔄 Cargando modelo en memoria (startup)…")
     MODEL = load_model(MODEL_PATH)
     print("✅ Modelo cargado correctamente.")
-
 
 # ================================
 # FUNCIONES DEL MODELO
@@ -75,7 +73,6 @@ def generate_gradcam(image: Image.Image, model, class_idx):
     img_input = preprocess_input(img_arr)
     img_input = np.expand_dims(img_input, axis=0)
 
-    # Obtener EfficientNetB0 interno
     effnet = model.get_layer("efficientnetb0")
 
     cam_model = tf.keras.models.Model(
@@ -87,13 +84,10 @@ def generate_gradcam(image: Image.Image, model, class_idx):
 
     with tf.GradientTape() as tape:
         conv_outputs, features = cam_model(img_tensor)
-
         gap = tf.reduce_mean(features, axis=(1, 2))
         final_dense = model.get_layer("dense")
-
         weights = final_dense.weights[0]
         bias = final_dense.weights[1]
-
         logits = tf.matmul(gap, weights) + bias
         loss = logits[:, class_idx]
 
@@ -124,7 +118,6 @@ def predict_image(image: Image.Image, model):
 
     return class_id, preds
 
-
 # ================================
 # ENDPOINTS API
 # ================================
@@ -142,7 +135,6 @@ async def predict(file: UploadFile = File(...)):
     gradcam_img = Image.fromarray(gradcam_np)
     buffer = BytesIO()
     gradcam_img.save(buffer, format="PNG")
-
     gradcam_b64 = base64.b64encode(buffer.getvalue()).decode()
 
     return {
@@ -156,15 +148,12 @@ async def predict(file: UploadFile = File(...)):
         }
     }
 
-
 @app.get("/health")
 async def health():
     return {"status": "ok"}
 
-
 # ================================
 # PRODUCCIÓN: SIN RELOAD
 # ================================
-
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=10000)
